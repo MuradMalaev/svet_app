@@ -1,0 +1,127 @@
+import { icon, esc, $, toast, subbar, progressBar, ringSvg, confirmDialog, plural, clamp } from '../core/ui.js';
+import { getPrayed, togglePrayed, getKhatm, setKhatm, getAzkarToday, getMemorized, getNamesViewed } from '../core/store.js';
+import { getAzkar } from '../core/data.js';
+import { dayKey, addDays, startOfDay, diffDays, parseDay, fmtDMY } from '../core/time.js';
+import { OBLIGATORY, QUOTES, TOTAL_PAGES, AZKAR_CATS } from '../core/meta.js';
+import { scheduleFor } from './home.js';
+
+/* ═════ Трекер ═════ */
+export async function renderTracker(view) {
+  const today = dayKey();
+  let azkarTotal = 0;
+  try { const z = await getAzkar(); azkarTotal = AZKAR_CATS.reduce((t, c) => t + (z[c.id]?.length || 0), 0); } catch { /* без данных азкаров */ }
+
+  const draw = () => {
+    const prayed = getPrayed(today), cnt = OBLIGATORY.filter((p) => prayed[p.key]).length;
+    const sch = scheduleFor(0), now = Date.now();
+    const nxt = OBLIGATORY.find((p) => sch.ms[p.key] && sch.ms[p.key] > now);
+    const k = getKhatm(), az = Object.keys(getAzkarToday().done).length, mem = getMemorized().size, nm = getNamesViewed().size;
+    const quote = QUOTES[Math.floor((startOfDay() - new Date(2024, 0, 1)) / 86400000) % QUOTES.length];
+    // последние 7 дней — из истории отметок
+    const hist = Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(startOfDay(), i - 6), p = getPrayed(dayKey(d));
+      return { d, n: OBLIGATORY.filter((o) => p[o.key]).length };
+    });
+    const cats = [
+      { ic: 'quran', t: 'Коран', v: k.active ? `${k.page} / ${TOTAL_PAGES}` : 'план не задан', f: k.active ? k.page / TOTAL_PAGES : 0, href: '#/tracker/khatm' },
+      { ic: 'azkar', t: 'Азкары', v: `${az} / ${azkarTotal}`, f: azkarTotal ? az / azkarTotal : 0, href: '#/azkar' },
+      { ic: 'hifz', t: 'Хифз', v: `${mem} / 114 сур`, f: mem / 114, href: '#/hifz' },
+      { ic: 'names', t: '99 имён', v: `${nm} / 99`, f: nm / 99, href: '#/names' },
+    ];
+    view.innerHTML = `${subbar('Трекер', '#/')}
+      <section class="card trk-pray">
+        <div class="trk-head"><span class="trk-ico">${icon('mosque')}</span><div><b>Сегодня ${cnt} / 5 намазов</b><small>${nxt ? 'Следующий: ' + nxt.ru : 'Следующий: Фаджр (завтра)'}</small></div></div>
+        <div class="trk-prayers">${OBLIGATORY.map((p) => `<button class="trk-p ${prayed[p.key] ? 'done' : ''}" data-p="${p.key}" aria-pressed="${!!prayed[p.key]}" aria-label="${p.ru}: отметить"><span>${icon('check')}</span>${p.ru}</button>`).join('')}</div>
+      </section>
+      <div class="trk-grid">${cats.map((c) => `<a class="trk-cat" href="${c.href}"><div class="trk-cat-h">${icon(c.ic)}<b>${c.t}</b></div><small>${esc(c.v)}</small>${progressBar(c.f, c.t)}</a>`).join('')}</div>
+      <h2 class="card-h">Намазы за 7 дней</h2>
+      <section class="card week"><div class="week-bars">${hist.map((h) => `<div class="wk ${diffDays(h.d, startOfDay()) === 0 ? 'today' : ''}"><i style="height:${(h.n / 5) * 100}%"></i><b>${h.n}</b><small>${['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][h.d.getDay()]}</small></div>`).join('')}</div></section>
+      <p class="quote">${esc(quote)}</p>`;
+  };
+  draw();
+  view.onclick = (e) => {
+    const b = e.target.closest('[data-p]');
+    if (!b) return;
+    togglePrayed(today, b.dataset.p);
+    draw();
+  };
+  return () => { view.onclick = null; };
+}
+
+/* ═════ Хатм-план ═════ */
+const effPerDay = (k) => {
+  const remaining = clamp(TOTAL_PAGES - k.page + 1, 0, TOTAL_PAGES);
+  if (k.mode === 0 || !k.target) return k.pagesPerDay;
+  const left = diffDays(startOfDay(), parseDay(k.target));
+  if (left <= 0) return remaining;
+  return clamp(Math.ceil(remaining / left), 1, TOTAL_PAGES);
+};
+const finishDate = (k) => {
+  if (k.mode === 1 && k.target) return parseDay(k.target);
+  const remaining = clamp(TOTAL_PAGES - k.page + 1, 0, TOTAL_PAGES);
+  return addDays(startOfDay(), Math.ceil(remaining / k.pagesPerDay));
+};
+
+export function renderKhatm(view) {
+  let setup = { mode: 0, pages: 5, target: dayKey(addDays(startOfDay(), 30)) };
+  const draw = () => {
+    const k = getKhatm();
+    if (!k.active) return drawSetup();
+    const remaining = clamp(TOTAL_PAGES - k.page + 1, 0, TOTAL_PAGES);
+    const frac = clamp((k.page - 1) / TOTAL_PAGES, 0, 1), fd = finishDate(k);
+    view.innerHTML = `${subbar('Хатм-план', '#/tracker')}
+      <section class="khatm-card">
+        <div class="khatm-top">${ringSvg(frac, Math.round(frac * 100) + '%')}<div><b>Осталось ${remaining} ${plural(remaining, 'страница', 'страницы', 'страниц')}</b>
+          <small>Читай ${effPerDay(k)} стр/день, чтобы закончить к ${fmtDMY(fd)}</small></div></div>
+        <div class="khatm-page"><label for="kp">Сейчас я на странице:</label><input id="kp" class="field" type="number" min="1" max="${TOTAL_PAGES}" value="${k.page}" inputmode="numeric"><button class="btn" id="k-save">${icon('check')} Сохранить</button></div>
+        <p class="khatm-note">План сам пересчитает темп, если ты отстал или прочитал больше</p>
+      </section>
+      <button class="btn ghost" id="k-edit" style="margin-top:16px">${icon('refresh')} Изменить план</button>`;
+  };
+  const drawSetup = () => {
+    const days = Math.ceil(TOTAL_PAGES / setup.pages), fd = addDays(startOfDay(), days);
+    const left = Math.max(1, diffDays(startOfDay(), parseDay(setup.target)));
+    view.innerHTML = `${subbar('Хатм-план', '#/tracker')}
+      <p class="page-sub" style="margin:14px 2px">Выберите, как планировать чтение всего Корана целиком (${TOTAL_PAGES} страниц Мединского мусхафа):</p>
+      <section class="card" style="padding:16px">
+        <div class="seg"><button data-m="0" aria-pressed="${setup.mode === 0}">Страниц в день</button><button data-m="1" aria-pressed="${setup.mode === 1}">К дате</button></div>
+        ${setup.mode === 0 ? `
+          <div class="row stack"><label for="kpd">Страниц в день: <b id="kpd-v">${setup.pages}</b></label><input class="range wide" id="kpd" type="range" min="1" max="30" value="${setup.pages}"></div>
+          <p class="muted-p small" id="k-hint">Ты закончишь весь Коран примерно через ${days} ${plural(days, 'день', 'дня', 'дней')} — к ${fmtDMY(fd)}</p>`
+    : `<div class="row stack"><label for="kd">Дата завершения</label><input class="field wide" id="kd" type="date" min="${dayKey(addDays(startOfDay(), 1))}" value="${setup.target}"></div>
+          <p class="muted-p small" id="k-hint">Понадобится читать примерно ${Math.ceil(TOTAL_PAGES / left)} стр. в день</p>`}
+        <button class="btn" id="k-start" style="width:100%;margin-top:12px">Начать план</button>
+      </section>`;
+  };
+  draw();
+  view.onclick = async (e) => {
+    const m = e.target.closest('[data-m]');
+    if (m) { setup.mode = +m.dataset.m; return drawSetup(); }
+    if (e.target.closest('#k-start')) {
+      const k = getKhatm();
+      if (setup.mode === 1 && diffDays(startOfDay(), parseDay(setup.target)) < 1) return toast('Выберите дату в будущем');
+      setKhatm({ active: true, mode: setup.mode, pagesPerDay: setup.pages, target: setup.mode === 1 ? setup.target : null, start: dayKey(), page: k.page || 1 });
+      return draw();
+    }
+    if (e.target.closest('#k-save')) {
+      const v = Math.round(+$('#kp', view).value);
+      if (!v || v < 1 || v > TOTAL_PAGES) return toast(`Введите страницу от 1 до ${TOTAL_PAGES}`);
+      setKhatm({ ...getKhatm(), page: v });
+      toast('Страница сохранена');
+      return draw();
+    }
+    if (e.target.closest('#k-edit')) {
+      if (await confirmDialog('Изменить план?', 'Текущая страница сохранится — вы выберете новый темп или дату.', 'Изменить')) { setKhatm({ ...getKhatm(), active: false }); draw(); }
+    }
+  };
+  view.oninput = (e) => {
+    if (e.target.id === 'kpd') {
+      setup.pages = +e.target.value;
+      const days = Math.ceil(TOTAL_PAGES / setup.pages);
+      $('#kpd-v', view).textContent = setup.pages;
+      $('#k-hint', view).textContent = `Ты закончишь весь Коран примерно через ${days} ${plural(days, 'день', 'дня', 'дней')} — к ${fmtDMY(addDays(startOfDay(), days))}`;
+    }
+    if (e.target.id === 'kd') { setup.target = e.target.value || setup.target; const left = Math.max(1, diffDays(startOfDay(), parseDay(setup.target))); $('#k-hint', view).textContent = `Понадобится читать примерно ${Math.ceil(TOTAL_PAGES / left)} стр. в день`; }
+  };
+  return () => { view.onclick = null; view.oninput = null; };
+}

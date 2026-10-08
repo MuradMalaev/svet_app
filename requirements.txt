@@ -1,0 +1,66 @@
+"""Сверка JS-расчётов (static/js/core/prayer.js) с эталонной Python-реализацией (tests/reference).
+Запуск: python -m unittest discover -s tests -v   (нужен Node.js ≥ 22)"""
+import json, subprocess, sys, unittest
+from datetime import date, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).parent / "reference"))
+import prayer_ref, hijri_ref  # noqa: E402
+
+PLACES = [  # name, lat, lon, tz
+    ("Москва", 55.7558, 37.6173, "Europe/Moscow"), ("Казань", 55.7887, 49.1221, "Europe/Moscow"),
+    ("Мекка", 21.4225, 39.8262, "Asia/Riyadh"), ("Лондон", 51.5074, -0.1278, "Europe/London"),
+    ("Нью-Йорк", 40.7128, -74.006, "America/New_York"), ("Ташкент", 41.2995, 69.2401, "Asia/Tashkent"),
+    ("Стамбул", 41.0082, 28.9784, "Europe/Istanbul"), ("Джакарта", -6.2088, 106.8456, "Asia/Jakarta"),
+    ("Мурманск", 68.9585, 33.0827, "Europe/Moscow"),  # высокие широты: полярный день
+]
+METHODS = [("mwl", "MWL"), ("isna", "ISNA"), ("egypt", "Egypt"), ("karachi", "Karachi"), ("makkah", "Makkah")]
+
+
+def minutes(t):
+    h, m = t.split(":")
+    return int(h) * 60 + int(m)
+
+
+class PrayerParity(unittest.TestCase):
+    def test_parity(self):
+        cases, refs = [], []
+        start = date(2026, 1, 1)
+        for i, (name, lat, lon, tz) in enumerate(PLACES):
+            for k in range(0, 365, 17):
+                d = start + timedelta(days=k)
+                js_m, py_m = METHODS[(i + k) % 5]
+                hanafi = (k // 17) % 2 == 1
+                cases.append(dict(y=d.year, m=d.month, d=d.day, lat=lat, lon=lon, tz=tz, method=js_m, asrHanafi=hanafi))
+                refs.append((name, d, prayer_ref.compute(d, lat, lon, tz, py_m, 2 if hanafi else 1), hijri_ref.to_hijri(d)))
+        res = subprocess.run(["node", "--experimental-default-type=module", str(ROOT / "tests" / "prayer_cases.mjs")],
+                             input=json.dumps(cases), capture_output=True, text=True, cwd=ROOT, check=True)
+        got = json.loads(res.stdout)
+        worst = 0
+        for (name, d, ref, hij), g in zip(refs, got):
+            self.assertEqual(tuple(g["hijri"]), hij, f"хиджра {d}")
+            for key, want in ref["times"].items():
+                have = g["times"][key]
+                if want is None:
+                    self.assertEqual(have, "—", f"{name} {d} {key}")
+                    continue
+                diff = abs(minutes(have) - minutes(want))
+                diff = min(diff, 1440 - diff)
+                worst = max(worst, diff)
+                self.assertLessEqual(diff, 1, f"{name} {d} {key}: JS {have} / Python {want}")
+        print(f"\nсверено {len(cases)} дней×6 времён, максимальное расхождение: {worst} мин")
+
+    def test_known_values(self):
+        out = subprocess.run(["node", "--experimental-default-type=module", "-e",
+            "import('./static/js/core/prayer.js').then(m=>console.log(JSON.stringify([m.qiblaBearing(51.5074,-0.1278),m.qiblaBearing(55.7558,37.6173),Math.round(m.distanceToKaabaKm(55.7558,37.6173)),m.toHijri({y:2025,m:3,d:1})])))"],
+            capture_output=True, text=True, cwd=ROOT, check=True).stdout
+        london, moscow, dist, h = json.loads(out)
+        self.assertAlmostEqual(london, 118.99, delta=0.5)   # известное значение для Лондона
+        self.assertAlmostEqual(moscow, 176.4, delta=0.5)
+        self.assertAlmostEqual(dist, 3822, delta=15)
+        self.assertEqual((h["year"], h["month"]), (1446, 9))  # 1 марта 2025 — начало Рамадана
+
+
+if __name__ == "__main__":
+    unittest.main()

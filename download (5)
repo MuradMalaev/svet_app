@@ -1,0 +1,484 @@
+import { icon, esc, $, $$, toast, starBadge, openSheet, switchEl, bindSwitches, copyText, promptDialog, hl, emptyState, plural, arDigits, clamp } from '../core/ui.js';
+import {
+  getSettings, setSettings, getBookmarks, toggleBookmark, isBookmarked, removeBookmark, addBookmarkRaw,
+  getLastRead, setLastRead, getNote, setNote, getNotes,
+} from '../core/store.js';
+import { getQuran, getHadiths, orderedSurahs, searchQuran, juzOf, ayahCopyText, relatedHadiths } from '../core/data.js';
+import { JUZ_START, RECITERS, TAJWEED_LEGEND } from '../core/meta.js';
+import { playRange, onAudio, getAudio, togglePlay } from '../core/audio.js';
+import { fetchTajweed, getTafsir } from '../core/remote.js';
+import { fmtDMY } from '../core/time.js';
+
+const BISM = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+let tab = 'surahs';
+let lastQuery = '';
+
+export function applyReadingVars() {
+  const s = getSettings(), r = document.documentElement.style;
+  r.setProperty('--ar-size', s.arSize + 'px');
+  r.setProperty('--ru-size', s.ruSize + 'px');
+  r.setProperty('--tf-size', s.tafsirSize + 'px');
+}
+
+const failBlock = (retryId = 'retry') => `<div class="empty"><h3>Не удалось загрузить данные</h3><p>Обновите страницу и попробуйте ещё раз.</p><button class="btn" style="margin-top:14px" id="${retryId}">Повторить</button></div>`;
+
+/* ═════════ Список: суры / джузы / закладки ═════════ */
+export async function renderQuran(view) {
+  view.innerHTML = `
+    <div class="q-head">
+      <h1 class="page-title">Коран</h1>
+      <div class="seg" role="tablist" aria-label="Раздел">
+        ${[['surahs', 'Суры'], ['juz', 'Джузы'], ['marks', 'Закладки']].map(([id, t]) => `<button role="tab" data-tab="${id}" aria-selected="${tab === id}">${t}</button>`).join('')}
+      </div>
+      <div class="search" ${tab !== 'surahs' ? 'hidden' : ''}>${icon('search')}<input id="q" type="search" inputmode="search" autocomplete="off" placeholder="Сура, «2:255» или слово из аята" value="${esc(lastQuery)}" aria-label="Поиск по Корану"></div>
+    </div>
+    <div id="list"><div class="skel" style="height:360px"></div></div>`;
+  $$('[data-tab]', view).forEach((b) => { b.onclick = () => { tab = b.dataset.tab; renderQuran(view); }; });
+  const list = $('#list', view);
+  let surahs;
+  try { surahs = await getQuran(); } catch {
+    list.innerHTML = failBlock();
+    $('#retry', list).onclick = () => renderQuran(view);
+    return;
+  }
+  if (tab === 'juz') return paintJuz(list, surahs);
+  if (tab === 'marks') return paintMarks(list, surahs, view);
+
+  const input = $('#q', view);
+  const paint = () => {
+    const q = input.value.trim();
+    lastQuery = input.value;
+    if (!q) { list.innerHTML = surahListHTML(orderedSurahs(surahs)); return; }
+    const r = searchQuran(surahs, q);
+    if (!r.surahs.length && !r.hits.length) {
+      list.innerHTML = emptyState('Ничего не найдено', 'Проверьте написание или попробуйте другое слово.');
+      return;
+    }
+    list.innerHTML = (r.surahs.length ? surahListHTML(r.surahs) : '') +
+      (r.hits.length ? `<h2 class="card-h">Найденные аяты${r.more ? ` · показано ${r.hits.length} из ${r.hits.length + r.more}` : ''}</h2><div class="hits">${r.hits.map((h) => `
+        <a class="hit" href="#/quran/${h.s}/${h.a}"><small>${esc(surahs[h.s - 1].ru)} · ${h.s}:${h.a}</small>
+        <div class="ar" lang="ar" dir="rtl">${esc(h.ar)}</div><p>${/[؀-ۿ]/.test(q) ? esc(h.ru) : hl(h.ru, q)}</p></a>`).join('')}</div>` : '');
+  };
+  let t;
+  input.oninput = () => { clearTimeout(t); t = setTimeout(paint, 160); };
+  paint();
+}
+
+function surahListHTML(items) {
+  const chrono = getSettings().chrono;
+  return `${chrono ? '<p class="page-sub chrono-note">Суры расположены в порядке ниспослания</p>' : ''}<ul class="surah-list">${items.map((s, i) => `
+    <li><a class="srow" href="#/quran/${s.n}">${starBadge(chrono ? i + 1 : s.n)}
+      <span class="sname"><b>${esc(s.ru)}</b><small>${esc(s.meaning)} · ${s.type === 'Мекканская' ? 'Мекка' : 'Медина'} · ${s.ayahs.length} ${plural(s.ayahs.length, 'аят', 'аята', 'аятов')}</small></span>
+      <span class="sar" lang="ar">${esc(s.ar)}</span></a></li>`).join('')}</ul>`;
+}
+
+function paintJuz(list, surahs) {
+  list.innerHTML = `<ul class="surah-list">${JUZ_START.map(([s, a], i) => `
+    <li><a class="srow" href="#/quran/${s}/${a}">${starBadge(i + 1)}
+      <span class="sname"><b>Джуз ${i + 1}</b><small>Начинается: ${esc(surahs[s - 1].ru)}, аят ${a}</small></span></a></li>`).join('')}</ul>`;
+}
+
+function paintMarks(list, surahs, view) {
+  const lr = getLastRead(), marks = getBookmarks(), notes = Object.entries(getNotes());
+  const row = (s, a, sub, extra = '') => `<li class="mrow"><a class="srow" href="#/quran/${s}/${a}">${starBadge(s)}<span class="sname"><b>${esc(surahs[s - 1].ru)} · аят ${a}</b><small>${sub}</small></span></a>${extra}</li>`;
+  list.innerHTML = `
+    ${lr ? `<a class="resume" href="#/quran/${lr.s}/${lr.a}">${icon('bookmark')}<div><small>Последнее чтение</small><b>${esc(surahs[lr.s - 1].ru)} · аят ${lr.a}</b></div><span class="go">${icon('forward')}</span></a>` : ''}
+    <h2 class="card-h">Мои закладки</h2>
+    ${marks.length ? `<ul class="surah-list">${marks.map((b) => row(b.s, b.a, fmtDMY(new Date(b.ts)), `<button class="icon-btn" data-del="${b.s}:${b.a}" aria-label="Удалить закладку">${icon('trash')}</button>`)).join('')}</ul>`
+    : emptyState('Закладок пока нет', 'Нажмите на значок закладки рядом с любым аятом.')}
+    ${notes.length ? `<h2 class="card-h">Мои заметки</h2><ul class="surah-list">${notes.map(([k, txt]) => {
+    const [s, a] = k.split('_').map(Number);
+    return row(s, a, esc(txt.length > 70 ? txt.slice(0, 70) + '…' : txt));
+  }).join('')}</ul>` : ''}`;
+  list.onclick = (e) => {
+    const del = e.target.closest('[data-del]');
+    if (!del) return;
+    const [s, a] = del.dataset.del.split(':').map(Number);
+    const b = getBookmarks().find((x) => x.s === s && x.a === a);
+    removeBookmark(s, a);
+    paintMarks(list, surahs, view);
+    toast(`Закладка удалена: ${surahs[s - 1].ru}, аят ${a}`, { label: 'Отменить', onClick: () => { addBookmarkRaw(b); paintMarks(list, surahs, view); } });
+  };
+}
+
+/* ═════════ Чтение суры ═════════ */
+export async function renderReader(view, n, focusAyah = 0) {
+  view.innerHTML = '<div class="skel" style="height:420px;margin-top:70px"></div>';
+  let surahs;
+  try { surahs = await getQuran(); } catch {
+    view.innerHTML = failBlock();
+    $('#retry', view).onclick = () => renderReader(view, n, focusAyah);
+    return;
+  }
+  const s = surahs[n - 1];
+  if (!s) { view.innerHTML = emptyState('Такой суры нет', 'Выберите суру из списка.', '<a class="btn" style="margin-top:14px" href="#/quran">К списку</a>'); return; }
+  const st = getSettings();
+  const ordered = orderedSurahs(surahs);
+  const pos = ordered.indexOf(s);
+  const prev = ordered[pos - 1], next = ordered[pos + 1];
+  const j0 = juzOf(n, 1);
+  const showBism = n !== 1 && n !== 9;
+  const total = s.ayahs.length;
+
+  const ayahCard = (ar, ru, i) => {
+    const a = i + 1, bm = isBookmarked(n, a), note = getNote(n, a);
+    return `<article class="ayah" id="a${a}" data-a="${a}">
+      <div class="a-head"><span class="a-num">${a}</span><div class="a-acts">
+        <button class="icon-btn" data-act="play" aria-label="Слушать аят ${a}">${icon('play')}</button>
+        <button class="icon-btn" data-act="bm" aria-pressed="${bm}" aria-label="Закладка: аят ${a}">${icon('bookmark')}</button>
+        <button class="icon-btn" data-act="tafsir" aria-label="Тафсир к аяту ${a}">${icon('info')}</button>
+        <button class="icon-btn" data-act="more" aria-label="Другие действия: аят ${a}">${icon('list')}</button></div></div>
+      ${st.showAr ? `<div class="a-ar" lang="ar" dir="rtl" data-ar="${a}">${esc(ar)}</div>` : ''}
+      ${st.showRu ? `<p class="a-ru">${esc(ru)}</p>` : ''}
+      ${note ? `<button class="a-note" data-act="note">${icon('note')}<span>${esc(note)}</span></button>` : ''}
+    </article>`;
+  };
+  const flowHTML = () => `<div class="flow" lang="ar" dir="rtl">${s.ayahs.map(([ar], i) =>
+    `<span class="fa" id="a${i + 1}" data-a="${i + 1}" data-ar="${i + 1}" tabindex="0" role="button" aria-label="Аят ${i + 1}">${esc(ar)}</span><span class="fnum">﴿${arDigits(i + 1)}﴾</span> `).join('')}</div>
+    <p class="page-sub flow-hint">Нажмите на аят, чтобы открыть действия</p>`;
+
+  view.innerHTML = `
+    <div class="r-bar">
+      <a class="icon-btn" href="#/quran" aria-label="К списку сур">${icon('back')}</a>
+      <button class="r-title" id="pick" aria-label="Выбрать суру"><b>${n}. ${esc(s.ru)}</b><small>Джуз ${j0} · ${total} ${plural(total, 'аят', 'аята', 'аятов')} ${icon('down')}</small></button>
+      <div class="r-actions">
+        <button class="icon-btn" id="play-surah" aria-label="Слушать суру целиком">${icon('play')}</button>
+        <button class="icon-btn" id="flow-btn" aria-pressed="${st.flow}" aria-label="Режим сплошного текста">${icon('quran')}</button>
+        <button class="icon-btn" id="read-set" aria-label="Настройки чтения">${icon('sliders')}</button>
+      </div></div>
+    <div class="s-banner">
+      <div class="ar" lang="ar">${esc(s.ar)}</div><h1>${esc(s.ru)}</h1>
+      <p>${esc(s.meaning)} · ${s.type === 'Мекканская' ? 'Мекканская' : 'Мединская'} · ${total} ${plural(total, 'аят', 'аята', 'аятов')}</p>
+      <button class="chip-btn" id="about">${icon('info')} О суре</button>
+    </div>
+    ${showBism && st.showAr ? `<div class="bism" lang="ar" dir="rtl">${BISM}</div>` : ''}
+    <div id="ayahs" class="${st.showRu ? '' : 'no-ru'}">${st.flow && st.showAr ? flowHTML() : s.ayahs.map(([ar, ru], i) => ayahCard(ar, ru, i)).join('')}</div>
+    <div class="r-nav">
+      ${prev ? `<a class="btn" href="#/quran/${prev.n}">${icon('back')} ${esc(prev.ru)}</a>` : ''}
+      ${next ? `<a class="btn" href="#/quran/${next.n}">${esc(next.ru)} ${icon('forward')}</a>` : ''}
+    </div>`;
+
+  setLastRead(n, focusAyah || 1);
+
+  /* — подсветка таджвида — */
+  if (st.tajweed && st.showAr) {
+    fetchTajweed(n).then((map) => {
+      if (!view.isConnected || $('#ayahs', view) == null) return;
+      for (const el of $$('[data-ar]', view)) { const h = map[+el.dataset.ar]; if (h) el.innerHTML = h; }
+    }).catch(() => toast('Таджвид недоступен: нет связи с alquran.cloud'));
+  }
+
+  /* — прокрутка к аяту — */
+  if (focusAyah > 0) {
+    const el = $('#a' + clamp(focusAyah, 1, total), view);
+    if (el) requestAnimationFrame(() => { el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); });
+  } else window.scrollTo(0, 0);
+
+  /* — запоминаем место чтения — */
+  let io = null, ioTimer;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        clearTimeout(ioTimer);
+        const a = +e.target.dataset.a;
+        ioTimer = setTimeout(() => setLastRead(n, a), 700);
+      }
+    }, { rootMargin: '-15% 0px -75% 0px' });
+    $$('[data-a]', view).forEach((el) => io.observe(el));
+  }
+
+  /* — подсветка играющего аята; в режиме «Коран-плеер» следуем за плеером в следующую суру — */
+  let lastAyah = 0, wasHere = false;
+  const offAudio = onAudio((a) => {
+    $$('.playing', view).forEach((el) => el.classList.remove('playing'));
+    const pb = $('#play-surah', view);
+    const here = a.surah === n;
+    if (pb) pb.innerHTML = icon(a.playing && here ? 'pause' : 'play');
+    if (here) wasHere = true;
+    if (a.playing && !here && a.surah && a.continuous && wasHere) { location.hash = `#/quran/${a.surah}`; return; }
+    if (a.playing && here) {
+      const el = $('#a' + a.ayah, view);
+      if (el) {
+        el.classList.add('playing');
+        if (a.ayah !== lastAyah) { lastAyah = a.ayah; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      }
+    } else if (!a.playing) lastAyah = 0;
+  });
+
+  const rerender = () => {
+    const y = window.scrollY;
+    renderReader(view, n, 0).then(() => window.scrollTo(0, y));
+  };
+
+  /* — события — */
+  view.onclick = (e) => {
+    const t = e.target;
+    if (t.closest('#pick')) return openPicker(surahs, n, ordered);
+    if (t.closest('#about')) return openAbout(s);
+    if (t.closest('#read-set')) return openReadSettings(rerender);
+    if (t.closest('#flow-btn')) { setSettings({ flow: !getSettings().flow }); return rerender(); }
+    if (t.closest('#play-surah')) {
+      const a = getAudio();
+      if (a.surah === n && (a.playing || a.loading)) return togglePlay();
+      return playRange({ surah: n, from: 1, to: total });
+    }
+    const fa = t.closest('.fa');
+    if (fa) return openAyahActions(surahs, n, +fa.dataset.a, rerender);
+    const act = t.closest('[data-act]');
+    if (!act) return;
+    const art = act.closest('[data-a]');
+    const a = +art.dataset.a;
+    switch (act.dataset.act) {
+      case 'play': return playRange({ surah: n, from: a, to: total });
+      case 'bm': {
+        const on = toggleBookmark(n, a, s.ru);
+        act.setAttribute('aria-pressed', on);
+        if (on) setLastRead(n, a);
+        return toast(on ? `Закладка: ${s.ru}, аят ${a}` : 'Закладка убрана');
+      }
+      case 'tafsir': return openTafsir(surahs, n, a);
+      case 'more': return openAyahActions(surahs, n, a, rerender);
+      case 'note': return editNote(n, a, rerender);
+    }
+  };
+  view.onkeydown = (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('fa')) { e.preventDefault(); openAyahActions(surahs, n, +e.target.dataset.a, rerender); }
+  };
+  return () => { io?.disconnect(); clearTimeout(ioTimer); offAudio(); view.onclick = null; view.onkeydown = null; };
+}
+
+/* ───── Панели ───── */
+function openAbout(s) {
+  openSheet(`${s.n}. ${s.ru}`, `
+    <div class="chips"><span class="chip">Тип: ${esc(s.type)}</span><span class="chip">Аятов: ${s.ayahs.length}</span><span class="chip">Джуз ${juzOf(s.n, 1)}</span></div>
+    <p class="about-ar" lang="ar">${esc(s.ar)}</p>
+    <h3 class="sub-h">Значение названия</h3><p class="muted-p">${esc(s.meaning)}</p>
+    ${s.info ? `<h3 class="sub-h">Смысловой контекст</h3><p class="muted-p">${esc(s.info)}</p>` : ''}`);
+}
+
+function openPicker(surahs, current, ordered) {
+  openSheet('Перейти', `
+    <div class="search" style="margin-bottom:10px">${icon('search')}<input id="pk-q" type="search" placeholder="Название или номер суры" autocomplete="off"></div>
+    <div class="goto-row"><label for="pk-a">Аят</label><input class="field" id="pk-a" type="number" min="1" max="${surahs[current - 1].ayahs.length}" placeholder="№"><button class="btn" id="pk-go">Перейти к аяту</button></div>
+    <ul class="surah-list pick-list" id="pk-list"></ul>`, (root, close) => {
+    const list = $('#pk-list', root), q = $('#pk-q', root);
+    const paint = () => {
+      const v = q.value.trim().toLowerCase();
+      const items = ordered.filter((x) => !v || x.ru.toLowerCase().includes(v) || String(x.n) === v || x.meaning.toLowerCase().includes(v));
+      list.innerHTML = items.map((x) => `<li><a class="srow ${x.n === current ? 'cur' : ''}" href="#/quran/${x.n}" data-close>${starBadge(x.n)}<span class="sname"><b>${esc(x.ru)}</b><small>${esc(x.meaning)}</small></span><span class="sar" lang="ar">${esc(x.ar)}</span></a></li>`).join('');
+    };
+    q.oninput = paint; paint();
+    $('#pk-go', root).onclick = () => {
+      const a = +$('#pk-a', root).value;
+      if (!a || a < 1 || a > surahs[current - 1].ayahs.length) return toast(`Введите номер аята от 1 до ${surahs[current - 1].ayahs.length}`);
+      close();
+      location.hash = `#/quran/${current}/${a}`;
+    };
+  });
+}
+
+export function openReadSettings(rerender) {
+  const s = getSettings();
+  const html = `
+    <div class="preview"><div class="a-ar" id="pv-ar" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div><p class="a-ru" id="pv-ru">Во имя Аллаха, Милостивого, Милосердного!</p></div>
+    <div class="row"><span class="lbl">Арабский текст</span>${switchEl(s.showAr, 'sw-ar', 'Арабский текст')}</div>
+    <div class="row"><span class="lbl">Перевод на русский</span>${switchEl(s.showRu, 'sw-ru', 'Перевод')}</div>
+    <div class="row"><span class="lbl">Цветные подсказки таджвида<small>Нужен интернет (alquran.cloud)</small></span>${switchEl(s.tajweed, 'sw-tj', 'Таджвид')}</div>
+    <div class="row"><span class="lbl"></span><button class="btn ghost" id="tj-legend" style="min-height:38px;padding:0 14px">Что означают цвета?</button></div>
+    <div class="row"><span class="lbl">Хронологическое чтение<small>Суры в порядке ниспослания, а не по Мусхафу</small></span>${switchEl(s.chrono, 'sw-ch', 'Хронологический порядок')}</div>
+    <div class="row"><span class="lbl">Режим «Коран-плеер»<small>После конца суры плеер сам включает следующую</small></span>${switchEl(s.continuous, 'sw-co', 'Коран-плеер')}</div>
+    <div class="row"><label for="r-ar">Арабский шрифт<small id="v-ar">${s.arSize} px</small></label><input class="range" id="r-ar" type="range" min="22" max="56" step="2" value="${s.arSize}"></div>
+    <div class="row"><label for="r-ru">Перевод<small id="v-ru">${s.ruSize} px</small></label><input class="range" id="r-ru" type="range" min="13" max="26" value="${s.ruSize}"></div>
+    <div class="row"><label for="r-tf">Тафсир<small id="v-tf">${s.tafsirSize} px</small></label><input class="range" id="r-tf" type="range" min="13" max="26" value="${s.tafsirSize}"></div>
+    <div class="row"><span class="lbl">Хатм-план<small>Чтение всего Корана по дням</small></span><a class="btn ghost" href="#/tracker/khatm" data-close style="min-height:38px;padding:0 14px">Открыть</a></div>`;
+  let dirty = false;
+  const myHash = location.hash;
+  openSheet('Настройки чтения', html, (root) => {
+    bindSwitches(root, (id, on) => {
+      const key = { 'sw-ar': 'showAr', 'sw-ru': 'showRu', 'sw-tj': 'tajweed', 'sw-ch': 'chrono', 'sw-co': 'continuous' }[id];
+      setSettings({ [key]: on });
+      dirty = true;
+    });
+    $('#tj-legend', root).onclick = () => openLegend();
+    const slide = (id, key, out) => { $(id, root).oninput = (e) => { setSettings({ [key]: +e.target.value }); $(out, root).textContent = e.target.value + ' px'; applyReadingVars(); }; };
+    slide('#r-ar', 'arSize', '#v-ar'); slide('#r-ru', 'ruSize', '#v-ru'); slide('#r-tf', 'tafsirSize', '#v-tf');
+  }, { onClose: () => { if (dirty) setTimeout(() => { if (location.hash === myHash) rerender(); }, 60); } });
+}
+
+export function openLegend() {
+  openSheet('Цвета таджвида', `<ul class="legend">${TAJWEED_LEGEND.map(([cls, t]) => `<li><span class="dot ${cls}"></span>${esc(t)}</li>`).join('')}</ul>
+    <p class="muted-p small">Разметка правил — Tajweed Guide сервиса Al Quran Cloud. Тафхим выделяется только для всегда «тяжёлых» букв (ص ض ط ظ خ غ ق).</p>`);
+}
+
+/* ───── Действия над аятом ───── */
+function openAyahActions(surahs, n, a, rerender) {
+  const s = surahs[n - 1];
+  const bm = isBookmarked(n, a), hasNote = !!getNote(n, a);
+  openSheet(`${s.ru} · аят ${a}`, `
+    <div class="act-list">
+      <button data-x="copy">${icon('copy')}<span>Копировать</span></button>
+      <button data-x="play">${icon('play')}<span>Прослушать</span></button>
+      <button data-x="tafsir">${icon('info')}<span>Тафсир Ибн Касира</span></button>
+      <button data-x="share">${icon('share')}<span>Поделиться картинкой</span></button>
+      <button data-x="note">${icon('edit')}<span>Заметка${hasNote ? '<small>Есть сохранённая заметка</small>' : ''}</span></button>
+      <button data-x="bm">${icon('bookmark')}<span>${bm ? 'Убрать закладку' : 'Добавить в закладки'}</span></button>
+    </div>`, (root, close) => {
+    root.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-x]');
+      if (!b) return;
+      close();
+      switch (b.dataset.x) {
+        case 'copy': toast((await copyText(ayahCopyText(s, a))) ? 'Аят скопирован' : 'Не удалось скопировать'); break;
+        case 'play': openAudioRange(surahs, n, a); break;
+        case 'tafsir': openTafsir(surahs, n, a); break;
+        case 'share': openShareCard(s, a); break;
+        case 'note': editNote(n, a, rerender); break;
+        case 'bm': {
+          const on = toggleBookmark(n, a, s.ru);
+          toast(on ? `Закладка: ${s.ru}, аят ${a}` : 'Закладка убрана');
+          rerender();
+          break;
+        }
+      }
+    });
+  }, { done: false });
+}
+
+async function editNote(n, a, rerender) {
+  const cur = getNote(n, a);
+  const v = await promptDialog(`Заметка · аят ${a}`, { value: cur, placeholder: 'Ваши мысли об этом аяте…', multiline: true, extra: cur ? 'Удалить' : '' });
+  if (v === null) return;
+  setNote(n, a, v);
+  toast(v.trim() ? 'Заметка сохранена' : 'Заметка удалена');
+  rerender?.();
+}
+
+export function openAudioRange(surahs, n, a) {
+  const s = surahs[n - 1], total = s.ayahs.length, cur = getSettings();
+  const opts = (from, sel) => Array.from({ length: total - from + 1 }, (_, i) => from + i).map((v) => `<option ${v === sel ? 'selected' : ''}>${v}</option>`).join('');
+  openSheet(`Аудио: ${s.ru}`, `
+    <div class="row stack"><label for="au-r">Чтец</label><select class="field wide" id="au-r">${RECITERS.map((r) => `<option value="${r.id}" ${r.id === cur.reciter ? 'selected' : ''}>${esc(r.ru)}</option>`).join('')}</select></div>
+    <div class="goto-row"><label for="au-a">Аят от</label><select class="field" id="au-a">${opts(1, a)}</select><label for="au-b">до</label><select class="field" id="au-b">${opts(a, total)}</select></div>
+    <button class="btn" id="au-go" style="width:100%;margin-top:12px">${icon('play')} Включить прослушивание</button>`, (root, close) => {
+    const from = $('#au-a', root), to = $('#au-b', root);
+    from.onchange = () => { const f = +from.value, t = Math.max(f, +to.value); to.innerHTML = opts(f, t); };
+    $('#au-go', root).onclick = () => {
+      setSettings({ reciter: $('#au-r', root).value });
+      playRange({ surah: n, from: +from.value, to: +to.value });
+      close();
+    };
+  }, { done: false });
+}
+
+/* ───── Тафсир ───── */
+function openTafsir(surahs, n0, a0) {
+  let n = n0, a = a0, token = 0, hadiths = null;
+  const html = '<div id="tf-root"></div>';
+  openSheet('', html, (root) => {
+    const host = $('#tf-root', root);
+    const draw = async () => {
+      const my = ++token, s = surahs[n - 1];
+      host.innerHTML = `
+        <h2 class="tf-title">Тафсир Ибн Касира · ${esc(s.ru)}, аят ${a}</h2>
+        <div class="tf-ayah" lang="ar" dir="rtl">${esc(s.ayahs[a - 1][0])}</div>
+        <div class="tf-body" id="tf-body"><div class="skel" style="height:120px"></div></div>
+        <div class="two-btns" style="margin-top:12px">
+          <button class="btn ghost" id="tf-prev" ${n === 1 && a === 1 ? 'disabled' : ''}>${icon('back')} Предыдущий</button>
+          <button class="btn ghost" id="tf-next" ${n === 114 && a === surahs[113].ayahs.length ? 'disabled' : ''}>Следующий ${icon('forward')}</button></div>
+        <button class="btn" data-close style="width:100%;margin-top:10px">Готово</button>`;
+      $('#tf-prev', host).onclick = () => { if (a > 1) a--; else if (n > 1) { n--; a = surahs[n - 1].ayahs.length; } draw(); };
+      $('#tf-next', host).onclick = () => { if (a < s.ayahs.length) a++; else if (n < 114) { n++; a = 1; } draw(); };
+      const body = $('#tf-body', host);
+      try {
+        const text = await getTafsir(n, a);
+        if (my !== token) return;
+        let rel = '';
+        try {
+          hadiths ||= await getHadiths();
+          const r = relatedHadiths(s.ayahs[a - 1][1], hadiths);
+          if (r.length) rel = `<div class="rel"><h3 class="sub-h">${icon('quote')} Возможно, по теме — хадисы</h3><p class="muted-p small">Подборка по совпадению слов, не богословское заключение</p>
+            ${r.map((h) => `<a class="rel-i" href="#/hadith/${encodeURIComponent(h.bookId + ':' + h.number)}" data-close>${icon('forward')}<span>${esc(h.title)}</span></a>`).join('')}</div>`;
+        } catch { /* хадисы не загрузились — блок пропускаем */ }
+        if (text) {
+          body.innerHTML = `<div class="tf-text">${esc(text)}</div><button class="btn ghost" id="tf-copy" style="margin-top:10px">${icon('copy')} Копировать аят и тафсир</button>${rel}`;
+          $('#tf-copy', host).onclick = async () => {
+            toast((await copyText(`Сура ${s.ru}, аят ${a}\n\n${s.ayahs[a - 1][0]}\n\nТафсир Ибн Касира:\n${text}`)) ? 'Скопировано: аят и тафсир' : 'Не удалось скопировать');
+          };
+        } else body.innerHTML = `<p class="muted-p">Для этого аята толкование пока недоступно в источнике.</p>${rel}`;
+      } catch (e) {
+        if (my !== token) return;
+        body.innerHTML = `<p class="muted-p">Не удалось загрузить тафсир. Проверьте интернет и попробуйте ещё раз.<br><small>${esc(e.message || e)}</small></p><button class="btn" id="tf-retry" style="margin-top:10px">Повторить</button>`;
+        $('#tf-retry', host).onclick = draw;
+      }
+    };
+    draw();
+  }, { done: false });
+}
+
+/* ───── Картинка для публикации ───── */
+function wrapLines(ctx, text, maxW) {
+  const words = text.split(' '), lines = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function drawCard(canvas, s, a) {
+  const [ar, ru] = s.ayahs[a - 1];
+  const W = 720, P = 56, ctx = canvas.getContext('2d');
+  canvas.width = W;
+  ctx.direction = 'rtl'; ctx.font = '44px "Amiri Quran","Noto Naskh Arabic","Scheherazade New",serif';
+  const arLines = wrapLines(ctx, ar, W - P * 2);
+  ctx.direction = 'ltr'; ctx.font = '28px Inter,system-ui,sans-serif';
+  const ruLines = wrapLines(ctx, ru, W - P * 2);
+  const H = P + 40 + 40 + arLines.length * 78 + 40 + ruLines.length * 40 + 50 + P;
+  canvas.height = H;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#174238'); g.addColorStop(1, '#0D2520');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(200,169,126,.45)'; ctx.lineWidth = 3; ctx.strokeRect(14, 14, W - 28, H - 28);
+  ctx.textAlign = 'center';
+  let y = P + 20;
+  ctx.direction = 'ltr'; ctx.fillStyle = 'rgba(200,169,126,.8)'; ctx.font = '600 24px Lora,Georgia,serif';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '8px';
+  ctx.fillText('СВЕТ', W / 2, y);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  y += 60;
+  ctx.direction = 'rtl'; ctx.fillStyle = '#C8A97E'; ctx.font = '44px "Amiri Quran","Noto Naskh Arabic","Scheherazade New",serif';
+  for (const l of arLines) { ctx.fillText(l, W / 2, y); y += 78; }
+  y += 6;
+  ctx.fillStyle = 'rgba(200,169,126,.45)'; ctx.fillRect(W / 2 - 40, y - 24, 80, 2);
+  y += 24;
+  ctx.direction = 'ltr'; ctx.fillStyle = '#F3EBD9'; ctx.font = '28px Inter,system-ui,sans-serif';
+  for (const l of ruLines) { ctx.fillText(l, W / 2, y); y += 40; }
+  y += 24;
+  ctx.fillStyle = 'rgba(243,235,217,.65)'; ctx.font = '600 22px Inter,system-ui,sans-serif';
+  ctx.fillText(`${s.ru} • Аят ${a}`, W / 2, y);
+}
+function openShareCard(s, a) {
+  openSheet('Поделиться аятом', `<canvas id="sc" class="share-canvas"></canvas>
+    <div class="two-btns" style="margin-top:12px"><button class="btn ghost" data-close>Закрыть</button><button class="btn" id="sc-go">${icon('share')} Поделиться</button></div>`, (root) => {
+    const canvas = $('#sc', root);
+    const paint = () => drawCard(canvas, s, a);
+    paint();
+    if (document.fonts?.ready) document.fonts.ready.then(paint);
+    $('#sc-go', root).onclick = () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return toast('Не удалось создать картинку');
+        const file = new File([blob], `ayah-${s.n}-${a}.png`, { type: 'image/png' });
+        try {
+          if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: `${s.ru}, аят ${a}` }); return; }
+        } catch (e) { if (e && e.name === 'AbortError') return; }
+        const url = URL.createObjectURL(blob);
+        const link = Object.assign(document.createElement('a'), { href: url, download: file.name });
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        toast('Картинка сохранена');
+      }, 'image/png');
+    };
+  }, { done: false });
+}

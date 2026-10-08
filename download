@@ -1,0 +1,149 @@
+import { icon, esc, $, toast, pad2 } from '../core/ui.js';
+import { getSettings, setSettings, getPrayed, togglePrayed, getLastRead } from '../core/store.js';
+import { dayKey } from '../core/time.js';
+import { computeDay, todayIn, shiftDate, toHijri } from '../core/prayer.js';
+import { PRAYER_EVENTS } from '../core/meta.js';
+import { getQuran } from '../core/data.js';
+import { rescheduleNotifications } from '../core/notify.js';
+import { openAlarmSheet } from './settings.js';
+
+const TILES = [
+  { ru: 'Коран', icon: 'quran', href: '#/quran' },
+  { ru: 'Хифз', icon: 'hifz', href: '#/hifz' },
+  { ru: 'Азкары', icon: 'azkar', href: '#/azkar' },
+  { ru: '99 имён', icon: 'names', href: '#/names' },
+  { ru: 'Трекер', icon: 'tracker', href: '#/tracker' },
+  { ru: 'Кибла', icon: 'qibla', href: '#/qibla' },
+];
+const MOSQUE = `<svg class="hero-mosque" viewBox="0 0 200 100" fill="currentColor" aria-hidden="true">
+  <path d="M0 100v-8h200v8z"/><path d="M60 92V72C60 44 80 30 100 20c20 10 40 24 40 52v20z"/>
+  <path d="M99 20V8h2v12z"/><circle cx="100" cy="6" r="3.5"/>
+  <path d="M36 92V82a14 14 0 0 1 28 0v10zM136 92V82a14 14 0 0 1 28 0v10z"/>
+  <path d="M16 92V38l6-14 6 14v54zM172 92V38l6-14 6 14v54z"/><circle cx="22" cy="20" r="2"/><circle cx="178" cy="20" r="2"/></svg>`;
+
+function fmtCount(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h) return `через ${h} ч ${m} мин`;
+  if (m) return `через ${m} мин ${pad2(s)} с`;
+  return `через ${s} с`;
+}
+
+/** Расписание на сегодня и завтра для выбранного в настройках места */
+export function scheduleFor(offsetDays = 0) {
+  const s = getSettings();
+  const d = shiftDate(todayIn(s.loc.tz), offsetDays);
+  return { date: d, ...computeDay(d, s.loc, s.method, s.asrHanafi) };
+}
+
+function nextEvent(today, tomorrow, now) {
+  for (const e of PRAYER_EVENTS) {
+    const ms = today.ms[e.key];
+    if (ms && ms > now) return { ...e, ms, text: today.text[e.key], tomorrow: false };
+  }
+  return { key: 'fajr', ru: 'Фаджр', ms: tomorrow.ms.fajr, text: tomorrow.text.fajr, tomorrow: true };
+}
+
+export function renderHome(view) {
+  const s = getSettings();
+  view.innerHTML = `
+    <header class="topbar">
+      <div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18"/><rect x="7" y="7" width="18" height="18" transform="rotate(45 16 16)"/></g><circle cx="16" cy="16" r="2.6" fill="currentColor"/></svg>Свет</div>
+      <button class="icon-btn" id="theme-btn" aria-label="Сменить тему"></button>
+    </header>
+    <div id="hero"></div>
+    <nav class="grid" aria-label="Разделы">
+      ${TILES.map((t) => `<a class="tile" href="${t.href}"><span class="tile-ico">${icon(t.icon)}</span>${esc(t.ru)}</a>`).join('')}
+    </nav>
+    <div id="resume"></div>`;
+  setupThemeBtn($('#theme-btn', view));
+  renderResume($('#resume', view));
+
+  const hero = $('#hero', view);
+  let today = scheduleFor(0), tomorrow = scheduleFor(1);
+  let dateKey = JSON.stringify(today.date);
+  let ev = null;
+
+  const draw = () => {
+    ev = nextEvent(today, tomorrow, Date.now());
+    hero.innerHTML = heroHTML(today, ev, s.loc.tz);
+  };
+  draw();
+  rescheduleNotifications();
+
+  hero.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]');
+    if (b) {
+      const on = togglePrayed(dayKey(), b.dataset.p);
+      b.classList.toggle('done', on);
+      b.setAttribute('aria-pressed', on);
+      if (on) toast(`${b.dataset.ru} отмечен`);
+      return;
+    }
+    if (e.target.closest('#alarm-btn')) openAlarmSheet(() => rescheduleNotifications());
+  });
+
+  const timer = setInterval(() => {
+    const nowDate = todayIn(s.loc.tz);
+    if (JSON.stringify(nowDate) !== dateKey) {
+      today = scheduleFor(0); tomorrow = scheduleFor(1); dateKey = JSON.stringify(today.date);
+      draw(); return;
+    }
+    const cur = nextEvent(today, tomorrow, Date.now());
+    if (cur.key !== ev.key || cur.tomorrow !== ev.tomorrow) { draw(); return; }
+    const c = $('#count', hero);
+    if (c) c.textContent = fmtCount(Math.max(0, Math.round((cur.ms - Date.now()) / 1000)));
+  }, 1000);
+  return () => clearInterval(timer);
+}
+
+function heroHTML(d, ev, tz) {
+  const s = getSettings();
+  const prayed = getPrayed(dayKey());
+  const now = new Date();
+  const dt = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }).format(now);
+  const hijri = toHijri(d.date);
+  const secs = Math.max(0, Math.round((ev.ms - Date.now()) / 1000));
+  return `<section class="hero" aria-label="Время намаза">
+    ${MOSQUE}
+    <div class="hero-top">
+      <div class="hero-loc">${icon('pin')}${esc(s.loc.name)}</div>
+      <button class="hero-bell" id="alarm-btn" aria-label="Умный будильник: Фаджр, Тахаджуд, Сухур">${icon('bell')}</button>
+    </div>
+    <a class="hero-date" href="#/schedule" aria-label="Расписание намаза на месяц">${esc(dt)} · ${esc(hijri.text)} ${icon('forward')}</a>
+    <div class="hero-main">
+      <p class="eyebrow">${ev.key === 'sunrise' ? 'Восход солнца' : ev.tomorrow ? 'Следующий намаз · завтра' : 'Следующий намаз'}</p>
+      <div class="hero-row"><h1 class="hero-name">${esc(ev.ru)}</h1><div class="hero-time">${esc(ev.text)}</div></div>
+      <span class="hero-count" id="count">${fmtCount(secs)}</span>
+    </div>
+    <div class="times">
+      ${PRAYER_EVENTS.map((e) => {
+    const active = !ev.tomorrow ? e.key === ev.key : e.key === 'fajr';
+    const t = d.text[e.key] || '—';
+    if (e.key === 'sunrise') return `<div class="t sun ${active ? 'active' : ''}"><span class="t-name">${e.ru}</span><span class="t-time">${t}</span><span class="t-mark">${icon('sunrise')}</span></div>`;
+    const done = !!prayed[e.key];
+    return `<button class="t ${done ? 'done' : ''} ${active ? 'active' : ''}" data-p="${e.key}" data-ru="${e.ru}" aria-pressed="${done}" aria-label="${e.ru} ${t}: отметить как совершённый"><span class="t-name">${e.ru}</span><span class="t-time">${t}</span><span class="t-mark">${icon('check')}</span></button>`;
+  }).join('')}
+    </div>
+    ${d.note ? `<p class="hero-note">${esc(d.note)}</p>` : ''}
+    ${s.loc.chosen ? '' : '<p class="hero-note">Показано время для Москвы. <a class="hero-link" href="#/settings">Выберите свой город</a></p>'}
+  </section>`;
+}
+
+async function renderResume(el) {
+  const lr = getLastRead();
+  if (!lr) return;
+  try {
+    const surahs = await getQuran();
+    const s = surahs[lr.s - 1];
+    if (!s) return;
+    el.innerHTML = `<a class="resume" href="#/quran/${lr.s}/${lr.a}">${icon('bookmark')}<div><small>Продолжить чтение</small><b>${esc(s.ru)}, аят ${lr.a}</b></div><span class="go">${icon('forward')}</span></a>`;
+  } catch { /* данные недоступны — блок просто не показываем */ }
+}
+
+export function setupThemeBtn(btn) {
+  const dark = () => document.documentElement.dataset.theme === 'dark' ||
+    (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  const paint = () => { btn.innerHTML = icon(dark() ? 'sun' : 'moon'); };
+  paint();
+  btn.onclick = () => { setSettings({ theme: dark() ? 'light' : 'dark' }); paint(); };
+}

@@ -1,0 +1,697 @@
+{
+  "names_of_allah": [
+    {
+      "number": 1,
+      "arabic": "الرَّحْمَنُ",
+      "transliteration": "Ар-Рахман",
+      "translation": "Милостивый",
+      "interpretation": "Тот, чья милость объемлет всё сущее в этом мире, включая верующих и неверующих."
+    },
+    {
+      "number": 2,
+      "arabic": "الرَّحِيمُ",
+      "transliteration": "Ар-Рахим",
+      "translation": "Мисердный",
+      "interpretation": "Тот, кто проявляет особую, вечную милость только к верующим в Судный день."
+    },
+    {
+      "number": 3,
+      "arabic": "الْمَلِكُ",
+      "transliteration": "Аль-Малик",
+      "translation": "Царь",
+      "interpretation": "Абсолютный Владыка, чьё господство безраздельно и ни с кем не делится."
+    },
+    {
+      "number": 4,
+      "arabic": "الْقُدُّوسُ",
+      "transliteration": "Аль-Куддус",
+      "translation": "Святейший",
+      "interpretation": "Тот, кто абсолютно чист и свободен от любых недостатков и несовершенств."
+    },
+    {
+      "number": 5,
+      "arabic": "السَّلَامُ",
+      "transliteration": "Ас-Салам",
+      "translation": "Источник мира",
+      "interpretation": "Тот, кто свободен от всех изъянов, дарует безопасность и мир."
+    },
+    {
+      "number": 6,
+      "arabic": "الْمُؤْمِنُ",
+      "transliteration": "Аль-Мумин",
+      "translation": "Дарующий безопасность",
+      "interpretation": "Тот, кто дарует веру и безопасность, чьё обещание заслуживает доверия."
+    },
+    {
+      "number": 7,
+      "arabic": "الْمُهَيْمِنُ",
+      "transliteration": "Аль-Мухаймин",
+      "translation": "Хранитель",
+      "interpretation": "Бдительный Защитник, который надзирает за всем и оберегает всё."
+    },
+    {
+      "number": 8,
+      "arabic": "الْعَزِيزُ",
+      "transliteration": "Аль-Азиз",
+      "translation": "Могущественный",
+      "interpretation": "Тот, кто обладает полным могуществом, которого ничто не может одолеть."
+    },
+    {
+      "number": 9,
+      "arabic": "الْجَبَّارُ",
+      "transliteration": "Аль-Джаббар",
+      "translation": "Подчиняющий",
+      "interpretation": "Тот, чья воля prevails, кто исправляет сломанное."
+    },
+    {
+      "number": 10,
+      "arabic": "الْمُتَكَبِّرُ",
+      "transliteration": "Аль-Мутакаббир",
+      "translation": "Превознесённый",
+      "interpretation": "Тот, кто по праву превыше всего творения."
+    },
+    {
+      "number": 11,
+      "arabic": "الْخَالِقُ",
+      "transliteration": "Аль-Халик",
+      "translation": "Творец",
+      "interpretation": "Тот, кто создаёт всё из ничего."
+    },
+    {
+      "number": 12,
+      "arabic": "الْبَارِئُ",
+      "transliteration": "Аль-Бари",
+      "translation": "Создатель",
+      "interpretation": "Тот, кто придаёт творению форму без изъянов и дисбаланса."
+    },
+    {
+      "number": 13,
+      "arabic": "الْمُصَوِّرُ",
+      "transliteration": "Аль-Мусаввир",
+      "translation": "Придающий форму",
+      "interpretation": "Тот, кто даёт каждой сотворённой вещи её особую форму и облик."
+    },
+    {
+      "number": 14,
+      "arabic": "الْغَفَّارُ",
+      "transliteration": "Аль-Гаффар",
+      "translation": "Всепрощающий",
+      "interpretation": "Тот, кто прощает многократно, сколько бы раз раб ни возвращался."
+    },
+    {
+      "number": 15,
+      "arabic": "الْقَهَّارُ",
+      "transliteration": "Аль-Каххар",
+      "translation": "Побеждающий",
+      "interpretation": "Тот, чья сила абсолютно подчиняет всё."
+    },
+    {
+      "number": 16,
+      "arabic": "الْوَهَّابُ",
+      "transliteration": "Аль-Ваххаб",
+      "translation": "Дарующий",
+      "interpretation": "Тот, кто даёт щедро, не ожидая возврата."
+    },
+    {
+      "number": 17,
+      "arabic": "رَّزَّاقُ",
+      "transliteration": "Ар-Раззак",
+      "translation": "Наделяющий уделом",
+      "interpretation": "Тот, кто обеспечивает пропитанием каждое живое существо."
+    },
+    {
+      "number": 18,
+      "arabic": "الْفَتَّاحُ",
+      "transliteration": "Аль-Фаттах",
+      "translation": "Открывающий",
+      "interpretation": "Тот, кто открывает закрытое — сердца, пути и решения."
+    },
+    {
+      "number": 19,
+      "arabic": "الْعَلِيمُ",
+      "transliteration": "Аль-Алим",
+      "translation": "Всезнающий",
+      "interpretation": "Тот, чьё знание полно — о видимом и сокрытом."
+    },
+    {
+      "number": 20,
+      "arabic": "الْقَابِضُ",
+      "transliteration": "Аль-Кабид",
+      "translation": "Сжимающий",
+      "interpretation": "Тот, кто сжимает и удерживает по совершенной мудрости."
+    },
+    {
+      "number": 21,
+      "arabic": "الْبَاسِطُ",
+      "transliteration": "Аль-Басит",
+      "translation": "Расширяющий",
+      "interpretation": "Тот, кто расширяет удел и облегчает сердца."
+    },
+    {
+      "number": 22,
+      "arabic": "الْخَافِضُ",
+      "transliteration": "Аль-Хафид",
+      "translation": "Принижающий",
+      "interpretation": "Тот, кто низводит высокомерных и угнетателей."
+    },
+    {
+      "number": 23,
+      "arabic": "رَّافِعُ",
+      "transliteration": "Ар-Рафи",
+      "translation": "Возвышающий",
+      "interpretation": "Тот, кто возвышает в чести, кого пожелает."
+    },
+    {
+      "number": 24,
+      "arabic": "الْمُعِزُّ",
+      "transliteration": "Аль-Муизз",
+      "translation": "Дающий славу",
+      "interpretation": "Тот, кто дарует достоинство и силу."
+    },
+    {
+      "number": 25,
+      "arabic": "الْمُذِلُّ",
+      "transliteration": "Аль-Музилль",
+      "translation": "Унижающий",
+      "interpretation": "Тот, кто унижает, кого пожелает, по справедливости."
+    },
+    {
+      "number": 26,
+      "arabic": "السَّمِيعُ",
+      "transliteration": "Ас-Сами",
+      "translation": "Всеслышащий",
+      "interpretation": "Тот, кто слышит каждый звук, включая невысказанное."
+    },
+    {
+      "number": 27,
+      "arabic": "الْبَصِيرُ",
+      "transliteration": "Аль-Басир",
+      "translation": "Всевидящий",
+      "interpretation": "Тот, кто видит всё, каким бы скрытым или малым оно ни было."
+    },
+    {
+      "number": 28,
+      "arabic": "الْحَكَمُ",
+      "transliteration": "Аль-Хакам",
+      "translation": "Судья",
+      "interpretation": "Тот, кто судит с абсолютной справедливостью, чьё решение окончательно."
+    },
+    {
+      "number": 29,
+      "arabic": "الْعَدْلُ",
+      "transliteration": "Аль-Адль",
+      "translation": "Справедливый",
+      "interpretation": "Тот, кто абсолютно справедлив и никогда никого не обижает."
+    },
+    {
+      "number": 30,
+      "arabic": "اللَّطِيفُ",
+      "transliteration": "Аль-Латиф",
+      "translation": "Проницательный",
+      "interpretation": "Тот, кто мягок со Своими рабами, осведомлён о самых тонких материях."
+    },
+    {
+      "number": 31,
+      "arabic": "الْخَبِيرُ",
+      "transliteration": "Аль-Хабир",
+      "translation": "Осведомлённый",
+      "interpretation": "Тот, кто знает сокровенную суть всех вещей."
+    },
+    {
+      "number": 32,
+      "arabic": "الْحَلِيمُ",
+      "transliteration": "Аль-Халим",
+      "translation": "Терпеливый",
+      "interpretation": "Тот, кто не спешит с наказанием, несмотря на полное знание о проступке."
+    },
+    {
+      "number": 33,
+      "arabic": "الْعَظِيمُ",
+      "transliteration": "Аль-Азим",
+      "translation": "Великий",
+      "interpretation": "Тот, чьё величие безмерно и непостижимо."
+    },
+    {
+      "number": 34,
+      "arabic": "الْغَفُورُ",
+      "transliteration": "Аль-Гафур",
+      "translation": "Прощающий",
+      "interpretation": "Тот, кто прощает обильно и скрывает недостатки."
+    },
+    {
+      "number": 35,
+      "arabic": "الشَّكُورُ",
+      "transliteration": "Аш-Шакур",
+      "translation": "Благодарный",
+      "interpretation": "Тот, кто вознаграждает за малые дела огромным воздаянием."
+    },
+    {
+      "number": 36,
+      "arabic": "الْعَلِيُّ",
+      "transliteration": "Аль-Али",
+      "translation": "Всевышний",
+      "interpretation": "Тот, кто превыше всего по сущности и атрибутам."
+    },
+    {
+      "number": 37,
+      "arabic": "الْكَبِيرُ",
+      "transliteration": "Аль-Кабир",
+      "translation": "Большой",
+      "interpretation": "Тот, кто больше всего творения вместе взятого."
+    },
+    {
+      "number": 38,
+      "arabic": "الْحَفِيظُ",
+      "transliteration": "Аль-Хафиз",
+      "translation": "Сохраняющий",
+      "interpretation": "Тот, кто сохраняет и оберегает всё сущее."
+    },
+    {
+      "number": 39,
+      "arabic": "الْمُقِيتُ",
+      "transliteration": "Аль-Мукит",
+      "translation": "Поддерживающий",
+      "interpretation": "Тот, кто питает и поддерживает каждое творение."
+    },
+    {
+      "number": 40,
+      "arabic": "الْحَسِيبُ",
+      "transliteration": "Аль-Хасиб",
+      "translation": "Считающий",
+      "interpretation": "Тот, кто ведёт полный учёт и достаточен для Своих рабов."
+    },
+    {
+      "number": 41,
+      "arabic": "الْجَلِيلُ",
+      "transliteration": "Аль-Джалиль",
+      "translation": "Величественный",
+      "interpretation": "Тот, кто обладает возвышенным величием и совершенными атрибутами."
+    },
+    {
+      "number": 42,
+      "arabic": "الْكَرِيمُ",
+      "transliteration": "Аль-Карим",
+      "translation": "Щедрый",
+      "interpretation": "Тот, кто даёт без ограничений и прощает без упрёков."
+    },
+    {
+      "number": 43,
+      "arabic": "الرَّقِيبُ",
+      "transliteration": "Ар-Ракиб",
+      "translation": "Наблюдающий",
+      "interpretation": "Тот, кто наблюдает за всем в каждый момент."
+    },
+    {
+      "number": 44,
+      "arabic": "الْمُجِيبُ",
+      "transliteration": "Аль-Муджиб",
+      "translation": "Отвечающий",
+      "interpretation": "Тот, кто отвечает на мольбу всякого, кто взывает к Нему."
+    },
+    {
+      "number": 45,
+      "arabic": "الْوَاسِعُ",
+      "transliteration": "Аль-Васи",
+      "translation": "Объемлющий",
+      "interpretation": "Тот, чья милость, знание и удел безграничны."
+    },
+    {
+      "number": 46,
+      "arabic": "الْحَكِيمُ",
+      "transliteration": "Аль-Хаким",
+      "translation": "Мудрый",
+      "interpretation": "Тот, чьё каждое решение исполнено совершенной мудрости."
+    },
+    {
+      "number": 47,
+      "arabic": "الْوَدُودُ",
+      "transliteration": "Аль-Вадуд",
+      "translation": "Любящий",
+      "interpretation": "Тот, кто любит Своих праведных рабов и любим ими."
+    },
+    {
+      "number": 48,
+      "arabic": "الْمَجِيدُ",
+      "transliteration": "Аль-Маджид",
+      "translation": "Славный",
+      "interpretation": "Тот, кто обладает совершенной славой, честью и благородством."
+    },
+    {
+      "number": 49,
+      "arabic": "الْبَاعِثُ",
+      "transliteration": "Аль-Баис",
+      "translation": "Воскрешающий",
+      "interpretation": "Тот, кто воскрешает мёртвых и отправляет посланников."
+    },
+    {
+      "number": 50,
+      "arabic": "الشَّهِيدُ",
+      "transliteration": "Аш-Шахид",
+      "translation": "Свидетель",
+      "interpretation": "Тот, кто присутствует при всём, от кого ничто не скрыто."
+    },
+    {
+      "number": 51,
+      "arabic": "الْحَقُّ",
+      "transliteration": "Аль-Хакк",
+      "translation": "Истина",
+      "interpretation": "Тот, чьё бытие и слово — высшая реальность."
+    },
+    {
+      "number": 52,
+      "arabic": "الْوَكِيلُ",
+      "transliteration": "Аль-Вакиль",
+      "translation": "Покровитель",
+      "interpretation": "Тот, кто достаточен как распорядитель дел."
+    },
+    {
+      "number": 53,
+      "arabic": "الْقَوِيُّ",
+      "transliteration": "Аль-Кавий",
+      "translation": "Сильный",
+      "interpretation": "Тот, кто обладает полной силой, не подверженной слабости."
+    },
+    {
+      "number": 54,
+      "arabic": "الْمَتِينُ",
+      "transliteration": "Аль-Матин",
+      "translation": "Несокрушимый",
+      "interpretation": "Тот, кто обладает непоколебимой твёрдостью и steadfast силой."
+    },
+    {
+      "number": 55,
+      "arabic": "الْوَلِيُّ",
+      "transliteration": "Аль-Валий",
+      "translation": "Друг",
+      "interpretation": "Тот, кто дружит, поддерживает и защищает верующих."
+    },
+    {
+      "number": 56,
+      "arabic": "الْحَمِيدُ",
+      "transliteration": "Аль-Хамид",
+      "translation": "Достохвальный",
+      "interpretation": "Тот, кто заслуживает всякой хвалы в любых обстоятельствах."
+    },
+    {
+      "number": 57,
+      "arabic": "الْمُحْصِي",
+      "transliteration": "Аль-Мухси",
+      "translation": "Исчисляющий",
+      "interpretation": "Тот, кто знает число и меру всех вещей."
+    },
+    {
+      "number": 58,
+      "arabic": "الْمُبْدِئُ",
+      "transliteration": "Аль-Мубди",
+      "translation": "Начинающий",
+      "interpretation": "Тот, кто начинает творение без предшествующего образца."
+    },
+    {
+      "number": 59,
+      "arabic": "الْمُعِيدُ",
+      "transliteration": "Аль-Муид",
+      "translation": "Возвращающий",
+      "interpretation": "Тот, кто восстанавливает творение после его исчезновения."
+    },
+    {
+      "number": 60,
+      "arabic": "الْمُحْيِي",
+      "transliteration": "Аль-Мухйи",
+      "translation": "Оживляющий",
+      "interpretation": "Тот, кто даёт жизнь мёртвым и бесплодной земле."
+    },
+    {
+      "number": 61,
+      "arabic": "الْمُمِيتُ",
+      "transliteration": "Аль-Мумит",
+      "translation": "Умерщвляющий",
+      "interpretation": "Тот, кто предопределяет смерть каждому живому существу."
+    },
+    {
+      "number": 62,
+      "arabic": "الْحَيُّ",
+      "transliteration": "Аль-Хайй",
+      "translation": "Живой",
+      "interpretation": "Тот, чья жизнь не имеет начала и конца."
+    },
+    {
+      "number": 63,
+      "arabic": "الْقَيُّومُ",
+      "transliteration": "Аль-Каййум",
+      "translation": "Самостоятельный",
+      "interpretation": "Тот, кто поддерживает всё существование, не нуждаясь ни в чём."
+    },
+    {
+      "number": 64,
+      "arabic": "الْوَاجِدُ",
+      "transliteration": "Аль-Ваджид",
+      "translation": "Находящий",
+      "interpretation": "Тот, кто ни в чём не нуждается и находит всё, что пожелает."
+    },
+    {
+      "number": 65,
+      "arabic": "الْمَاجِدُ",
+      "transliteration": "Аль-Маджид",
+      "translation": "Благородный",
+      "interpretation": "Тот, кто обладает изобильной славой и щедрым благородством."
+    },
+    {
+      "number": 66,
+      "arabic": "الْوَاحِدُ",
+      "transliteration": "Аль-Вахид",
+      "translation": "Единый",
+      "interpretation": "Тот, кто единственен в сущности, без партнёра или равного."
+    },
+    {
+      "number": 67,
+      "arabic": "الْأَحَدُ",
+      "transliteration": "Аль-Ахад",
+      "translation": "Единственный",
+      "interpretation": "Тот, кто уникально един, не допускающий никакой множественности."
+    },
+    {
+      "number": 68,
+      "arabic": "الصَّمَدُ",
+      "transliteration": "Ас-Самад",
+      "translation": "Самодостаточный",
+      "interpretation": "Тот, на кого все полагаются, а Он не зависит ни от кого."
+    },
+    {
+      "number": 69,
+      "arabic": "الْقَادِرُ",
+      "transliteration": "Аль-Кадир",
+      "translation": "Способный",
+      "interpretation": "Тот, кто властен над всеми вещами."
+    },
+    {
+      "number": 70,
+      "arabic": "الْمُقْتَدِرُ",
+      "transliteration": "Аль-Муктадир",
+      "translation": "Всемогущий",
+      "interpretation": "Тот, кто обладает преобладающей, непреодолимой силой."
+    },
+    {
+      "number": 71,
+      "arabic": "الْمُقَدِّمُ",
+      "transliteration": "Аль-Мукаддим",
+      "translation": "Ускоряющий",
+      "interpretation": "Тот, кто продвигает вперёд, кого и что пожелает."
+    },
+    {
+      "number": 72,
+      "arabic": "الْمُؤَخِّرُ",
+      "transliteration": "Аль-Муаххир",
+      "translation": "Отсрочивающий",
+      "interpretation": "Тот, кто откладывает по мудрости, а не по небрежности."
+    },
+    {
+      "number": 73,
+      "arabic": "الْأَوَّلُ",
+      "transliteration": "Аль-Авваль",
+      "translation": "Первый",
+      "interpretation": "Тот, до кого не было ничего."
+    },
+    {
+      "number": 74,
+      "arabic": "الْآخِرُ",
+      "transliteration": "Аль-Ахир",
+      "translation": "Последний",
+      "interpretation": "Тот, после кого не будет ничего."
+    },
+    {
+      "number": 75,
+      "arabic": "الظَّاهِرُ",
+      "transliteration": "Аз-Захир",
+      "translation": "Явный",
+      "interpretation": "Тот, кто очевиден через знамения Своего творения."
+    },
+    {
+      "number": 76,
+      "arabic": "الْبَاطِنُ",
+      "transliteration": "Аль-Батин",
+      "translation": "Скрытый",
+      "interpretation": "Тот, чья сущность за пределами восприятия."
+    },
+    {
+      "number": 77,
+      "arabic": "الْوَالِي",
+      "transliteration": "Аль-Вали",
+      "translation": "Правитель",
+      "interpretation": "Тот, кто управляет и распоряжается всеми делами."
+    },
+    {
+      "number": 78,
+      "arabic": "الْمُتَعَالِي",
+      "transliteration": "Аль-Мутаали",
+      "translation": "Превознесённый",
+      "interpretation": "Тот, кто превыше любых ограничений, приписываемых Ему."
+    },
+    {
+      "number": 79,
+      "arabic": "الْبَرُّ",
+      "transliteration": "Аль-Барр",
+      "translation": "Благостный",
+      "interpretation": "Тот, кто изобильно добр и благ к Своему творению."
+    },
+    {
+      "number": 80,
+      "arabic": "التَّوَّابُ",
+      "transliteration": "Ат-Тавваб",
+      "translation": "Принимающий покаяние",
+      "interpretation": "Тот, кто многократно принимает возвращение кающихся."
+    },
+    {
+      "number": 81,
+      "arabic": "الْمُنْتَقِمُ",
+      "transliteration": "Аль-Мунтаким",
+      "translation": "Мстящий",
+      "interpretation": "Тот, кто справедливо воздаёт упорствующему угнетателю."
+    },
+    {
+      "number": 82,
+      "arabic": "الْعَفُوُّ",
+      "transliteration": "Аль-Афувв",
+      "translation": "Прощающий",
+      "interpretation": "Тот, кто стирает грехи полностью, не оставляя следа."
+    },
+    {
+      "number": 83,
+      "arabic": "الرَّءُوفُ",
+      "transliteration": "Ар-Рауф",
+      "translation": "Сострадательный",
+      "interpretation": "Тот, кто исполнен нежной сострадательности к Своим рабам."
+    },
+    {
+      "number": 84,
+      "arabic": "مَالِكُ الْمُلْكِ",
+      "transliteration": "Малик уль-Мульк",
+      "translation": "Владыка царства",
+      "interpretation": "Обладатель всей власти, кто даёт и отнимает её."
+    },
+    {
+      "number": 85,
+      "arabic": "ذُو الْجَلَالِ وَالْإِكْرَامِ",
+      "transliteration": "Зуль-Джаляли валь-Икрам",
+      "translation": "Обладатель величия и щедрости",
+      "interpretation": "Владеющий величием и источник всякой чести."
+    },
+    {
+      "number": 86,
+      "arabic": "الْمُقْسِطُ",
+      "transliteration": "Аль-Муксит",
+      "translation": "Справедливый",
+      "interpretation": "Тот, кто устанавливает справедливость и восстанавливает права угнетённых."
+    },
+    {
+      "number": 87,
+      "arabic": "الْجَامِعُ",
+      "transliteration": "Аль-Джами",
+      "translation": "Собирающий",
+      "interpretation": "Тот, кто соберёт всё творение в День Суда."
+    },
+    {
+      "number": 88,
+      "arabic": "الْعَنِيُّ",
+      "transliteration": "Аль-Ганий",
+      "translation": "Богатый",
+      "interpretation": "Тот, кто свободен от всякой нужды, богат beyond зависимости."
+    },
+    {
+      "number": 89,
+      "arabic": "الْمُغْنِي",
+      "transliteration": "Аль-Мухни",
+      "translation": "Обогащающий",
+      "interpretation": "Тот, кто обогащает и удовлетворяет, кого пожелает."
+    },
+    {
+      "number": 90,
+      "arabic": "الْمَانِعُ",
+      "transliteration": "Аль-Мани",
+      "translation": "Удерживающий",
+      "interpretation": "Тот, кто удерживает вред и предотвращает по мудрости."
+    },
+    {
+      "number": 91,
+      "arabic": "الضَّارُّ",
+      "transliteration": "Ад-Дарр",
+      "translation": "Причиняющий вред",
+      "interpretation": "Тот, по чьему решению случается бедствие, всегда с целью."
+    },
+    {
+      "number": 92,
+      "arabic": "النَّافِعُ",
+      "transliteration": "Ан-Нафи",
+      "translation": "Приносящий пользу",
+      "interpretation": "Тот, от кого в конечном итоге исходит всякая польза."
+    },
+    {
+      "number": 93,
+      "arabic": "النُّورُ",
+      "transliteration": "Ан-Нур",
+      "translation": "Свет",
+      "interpretation": "Тот, кто освещает небеса, землю и сердца."
+    },
+    {
+      "number": 94,
+      "arabic": "الْهَادِي",
+      "transliteration": "Аль-Хади",
+      "translation": "Ведущий",
+      "interpretation": "Тот, кто наставляет на истину, кого пожелает."
+    },
+    {
+      "number": 95,
+      "arabic": "الْبَدِيعُ",
+      "transliteration": "Аль-Бади",
+      "translation": "Творец нового",
+      "interpretation": "Тот, кто творит без модели или предшественника."
+    },
+    {
+      "number": 96,
+      "arabic": "الْبَاقِي",
+      "transliteration": "Аль-Баки",
+      "translation": "Вечный",
+      "interpretation": "Тот, кто остаётся, когда всё остальное исчезает."
+    },
+    {
+      "number": 97,
+      "arabic": "الْوَارِثُ",
+      "transliteration": "Аль-Варис",
+      "translation": "Наследник",
+      "interpretation": "Тот, к кому всё возвращается после исчезновения творения."
+    },
+    {
+      "number": 98,
+      "arabic": "الرَّشِيدُ",
+      "transliteration": "Ар-Рашид",
+      "translation": "Наставляющий",
+      "interpretation": "Тот, чьё направление безошибочно и управление совершенно."
+    },
+    {
+      "number": 99,
+      "arabic": "الصَّبُورُ",
+      "transliteration": "Ас-Сабур",
+      "translation": "Терпеливый",
+      "interpretation": "Тот, кто терпелив и не спешит с наказанием."
+    }
+  ]
+}

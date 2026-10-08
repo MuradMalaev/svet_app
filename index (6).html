@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Свет — Коран, намаз, азкары</title>
+<meta name="description" content="Свет — исламское приложение: время намаза, Коран с переводом и тафсиром, хифз, азкары, хадисы, 99 имён Аллаха.">
+<meta name="theme-color" content="#F6F3E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B1F1A" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Свет">
+<link rel="preload" href="/static/fonts/Inter-Regular.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="/static/css/app.css?v={{ v }}">
+{% if quran_font %}<style>@font-face{font-family:"UthmanicHafs";font-display:swap;src:url(/static/fonts/UthmanicHafs.ttf) format("truetype")}</style>{% endif %}
+<script>
+  try { var t = JSON.parse(localStorage.getItem('svet.settings') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<div class="shell">
+  <main id="view" tabindex="-1"></main>
+  <div id="miniplayer" class="miniplayer" hidden></div>
+  <nav class="tabbar" id="tabbar" aria-label="Основная навигация"></nav>
+</div>
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:24px">Для работы приложения нужен включённый JavaScript.</p></noscript>
+<script type="module" src="/static/js/main.js?v={{ v }}"></script>
+</body>
+</html>
